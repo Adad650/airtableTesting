@@ -435,6 +435,7 @@
 
     async function updateRecord(id, field, value) {
       try {
+        showStatus('Saving...', 'info');
         const res = await fetch(API_BASE + `/api/records/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -447,6 +448,46 @@
         showStatus('Failed: ' + err.message, 'error');
         await fetchRecords();
       }
+    }
+
+    function showValidationError(row, message, ageInput, dobInput) {
+      const errorEl = row.querySelector('.validation-error') || row.querySelector('.card-validation-error');
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+      }
+      if (ageInput) ageInput.classList.add('error');
+      if (dobInput) dobInput.classList.add('error');
+    }
+
+    function clearValidationError(row) {
+      const errorEl = row.querySelector('.validation-error') || row.querySelector('.card-validation-error');
+      if (errorEl) errorEl.classList.remove('show');
+      const ageInput = row.querySelector('input[data-field="Age"]');
+      const dobInput = row.querySelector('input[data-field="Date of Birth"]');
+      if (ageInput) ageInput.classList.remove('error');
+      if (dobInput) dobInput.classList.remove('error');
+    }
+
+    async function handleFieldChange(input, recordId, field) {
+      const row = input.closest('tr') || input.closest('.card');
+      const ageInput = row.querySelector('input[data-field="Age"]');
+      const dobInput = row.querySelector('input[data-field="Date of Birth"]');
+
+      if (field === 'Age' || field === 'Date of Birth') {
+        const age = ageInput?.value || '';
+        const dob = dobInput?.value || '';
+        const validation = validateAge(age, dob);
+
+        if (!validation.valid) {
+          showValidationError(row, validation.message, ageInput, dobInput);
+          return;
+        }
+        clearValidationError(row);
+      }
+
+      const value = field === 'Age' && input.value ? parseInt(input.value) : input.value;
+      await updateRecord(recordId, field, value || null);
     }
 
     async function deleteRecord(id) {
@@ -494,31 +535,6 @@
       if (type === 'success') setTimeout(() => el.innerHTML = '', 3000);
     }
 
-    function validateOnChange(input, recordId) {
-      const row = input.closest('tr') || input.closest('.card');
-      const nameInput = row.querySelector('input[data-field="Name"]');
-      const ageInput = row.querySelector('input[data-field="Age"]');
-      const dobInput = row.querySelector('input[data-field="Date of Birth"]');
-      const errorEl = row.querySelector('.validation-error') || row.querySelector('.card-validation-error');
-
-      const age = ageInput ? ageInput.value : '';
-      const dob = dobInput ? dobInput.value : '';
-
-      const validation = validateAge(age, dob);
-
-      if (errorEl) {
-        if (validation.valid) {
-          errorEl.classList.remove('show');
-          if (ageInput) ageInput.classList.remove('error');
-          if (dobInput) dobInput.classList.remove('error');
-        } else {
-          errorEl.textContent = validation.message;
-          errorEl.classList.add('show');
-          if (ageInput) ageInput.classList.add('error');
-          if (dobInput) dobInput.classList.add('error');
-        }
-      }
-    }
 
     function render() {
       const content = document.getElementById('content');
@@ -560,20 +576,20 @@
                 <td>
                   <input type="text" data-field="Name"
                     value="${escapeHtml(r.fields.Name || '')}"
-                    onchange="updateRecord('${r.id}', 'Name', this.value)"
+                    onchange="handleFieldChange(this, '${r.id}', 'Name')"
                   />
                 </td>
                 <td>
                   <input type="number" data-field="Age"
                     value="${r.fields.Age ?? ''}"
-                    onchange="updateRecord('${r.id}', 'Age', this.value ? parseInt(this.value) : null); validateOnChange(this, '${r.id}')"
+                    onchange="handleFieldChange(this, '${r.id}', 'Age')"
                   />
                   <div class="validation-error"></div>
                 </td>
                 <td>
                   <input type="date" data-field="Date of Birth"
                     value="${r.fields['Date of Birth'] || ''}"
-                    onchange="updateRecord('${r.id}', 'Date of Birth', this.value); validateOnChange(this, '${r.id}')"
+                    onchange="handleFieldChange(this, '${r.id}', 'Date of Birth')"
                   />
                 </td>
                 <td>
@@ -599,7 +615,7 @@
                 <div class="card-label">Name</div>
                 <input type="text" class="card-input" data-field="Name"
                   value="${escapeHtml(r.fields.Name || '')}"
-                  onchange="updateRecord('${r.id}', 'Name', this.value)"
+                  onchange="handleFieldChange(this, '${r.id}', 'Name')"
                   placeholder="Enter name"
                 />
               </div>
@@ -608,7 +624,7 @@
                 <div class="card-label">Age</div>
                 <input type="number" class="card-input" data-field="Age"
                   value="${r.fields.Age ?? ''}"
-                  onchange="updateRecord('${r.id}', 'Age', this.value ? parseInt(this.value) : null); validateOnChange(this, '${r.id}')"
+                  onchange="handleFieldChange(this, '${r.id}', 'Age')"
                   placeholder="Enter age"
                 />
                 <div class="card-validation-error"></div>
@@ -618,7 +634,7 @@
                 <div class="card-label">Date of Birth</div>
                 <input type="date" class="card-input" data-field="Date of Birth"
                   value="${r.fields['Date of Birth'] || ''}"
-                  onchange="updateRecord('${r.id}', 'Date of Birth', this.value); validateOnChange(this, '${r.id}')"
+                  onchange="handleFieldChange(this, '${r.id}', 'Date of Birth')"
                 />
               </div>
 
