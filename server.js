@@ -51,6 +51,23 @@ async function handle(req, res) {
 
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
   const pathname = url.pathname.replace(/\/$/, '') || '/';
+
+  // Root path - show API info
+  if (pathname === '') {
+    res.writeHead(200, { ...headers, 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'ok',
+      message: 'Airtable proxy API',
+      endpoints: {
+        'GET /api/records': 'Fetch all records',
+        'POST /api/records': 'Create a record',
+        'PATCH /api/records/{id}': 'Update a record',
+        'DELETE /api/records/{id}': 'Delete a record',
+      }
+    }));
+    return;
+  }
+
   const isRecordsPath = pathname === '/api/records' || /^\/api\/records\/[^/]+$/.test(pathname);
 
   if (!isRecordsPath) {
