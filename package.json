@@ -1,0 +1,7 @@
+{
+  "name": "airtable-proxy",
+  "version": "1.0.0",
+  "description": "Secure proxy for Airtable API (use with GitHub Pages frontend)",
+  "main": "server.js",
+  "engines": { "node": ">=18" }
+}

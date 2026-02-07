@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airtable Frontend</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .config-bar {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .config-bar label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #666;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .config-bar input {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      width: 280px;
+    }
+
+    .config-bar button {
+      padding: 0.5rem 1rem;
+      background: #2d7ff9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+
+    .config-bar button:hover { background: #1a6fe0; }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar button {
+      padding: 0.5rem 1rem;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+
+    .toolbar button:hover { background: #f0f0f0; }
+    .toolbar button.primary { background: #2d7ff9; color: #fff; border-color: #2d7ff9; }
+    .toolbar button.primary:hover { background: #1a6fe0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.625rem 1rem;
+      background: #f8f8f8;
+      border-bottom: 2px solid #ddd;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    td {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid #eee;
+      font-size: 0.875rem;
+    }
+
+    tr:hover td { background: #f9fbff; }
+
+    td input {
+      width: 100%;
+      border: 1px solid transparent;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: transparent;
+    }
+
+    td input:focus {
+      outline: none;
+      border-color: #2d7ff9;
+      background: #fff;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+    .actions button:hover { background: #fee; color: #e33; }
+
+    .status {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .status.error { display: block; background: #fef2f2; color: #c33; border: 1px solid #fcc; }
+    .status.success { display: block; background: #f0fdf4; color: #2a7; border: 1px solid #bef5cb; }
+    .status.info { display: block; background: #eff6ff; color: #369; border: 1px solid #bdd9fc; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #999;
+    }
+
+    .loading { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <h1>Airtable Frontend</h1>
+
+  <div class="config-bar">
+    <div>
+      <label>Backend API URL</label>
+      <input type="url" id="apiBase" placeholder="https://your-app.onrender.com" />
+    </div>
+    <button onclick="connect()">Connect</button>
+  </div>
+  <p style="font-size:0.75rem;color:#666;margin-top:0.5rem;">Use your Render.com proxy URL. Token and base/table are configured on the server.</p>
+
+  <div class="toolbar">
+    <button class="primary" onclick="addRow()">+ Add Record</button>
+    <button onclick="fetchRecords()">Refresh</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px">#</th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Date of Birth</th>
+        <th style="width:70px">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <tr><td colspan="5" class="empty-state">Connect to Airtable to get started</td></tr>
+    </tbody>
+  </table>
+
+  <div id="status" class="status"></div>
+
+  <script>
+    let records = [];
+
+    function getConfig() {
+      const base = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+      return { apiBase: base };
+    }
+
+    function setStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status ' + type;
+      if (type === 'success') setTimeout(() => el.className = 'status', 3000);
+    }
+
+    function apiUrl() {
+      const { apiBase } = getConfig();
+      return apiBase ? `${apiBase}/api/records` : '';
+    }
+
+    async function connect() {
+      const { apiBase } = getConfig();
+      if (!apiBase) {
+        setStatus('Please enter your Backend API URL (e.g. https://your-app.onrender.com).', 'error');
+        return;
+      }
+      try {
+        setStatus('Connecting...', 'info');
+        await fetchRecords();
+        setStatus('Connected successfully!', 'success');
+      } catch (e) {
+        setStatus('Connection failed: ' + e.message, 'error');
+      }
+    }
+
+    async function fetchRecords() {
+      const res = await fetch(apiUrl(), { headers: { 'Content-Type': 'application/json' } });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      records = data.records || [];
+      render();
+    }
+
+    function render() {
+      const tbody = document.getElementById('tableBody');
+      if (records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No records yet. Click "+ Add Record" to create one.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = records.map((r, i) => `
+        <tr data-id="${r.id}">
+          <td style="color:#999">${i + 1}</td>
+          <td><input type="text" value="${esc(r.fields.Name || '')}" data-field="Name" onchange="updateField(this)" /></td>
+          <td><input type="number" value="${esc(String(r.fields.Age ?? ''))}" data-field="Age" onchange="updateField(this)" /></td>
+          <td><input type="date" value="${esc(r.fields['Date of Birth'] || '')}" data-field="Date of Birth" onchange="updateField(this)" /></td>
+          <td class="actions"><button onclick="deleteRow('${r.id}')">Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function esc(s) {
+      return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function addRow() {
+      try {
+        setStatus('Adding record...', 'info');
+        const res = await fetch(apiUrl(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: [{ fields: {} }] }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${res.status}`);
+        }
+        await fetchRecords();
+        setStatus('Record added.', 'success');
+      } catch (e) {
+        setStatus('Add failed: ' + e.message, 'error');
+      }
+    }
+
+    async function updateField(input) {
+      const id = input.closest('tr').dataset.id;
+      const field = input.dataset.field;
+      let value = input.value;
+
+      if (field === 'Age') {
+        value = value === '' ? null : Number(value);
+      }
+
+      try {
+        setStatus('Saving...', 'info');
+        const res = await fetch(apiUrl(), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            records: [{ id: id, fields: { [field]: value } }]
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${res.status}`);
+        }
+        await fetchRecords();
+        setStatus('Saved.', 'success');
+      } catch (e) {
+        setStatus('Save failed: ' + e.message, 'error');
+        await fetchRecords();
+      }
+    }
+
+    async function deleteRow(id) {
+      if (!confirm('Delete this record?')) return;
+      try {
+        setStatus('Deleting...', 'info');
+        const res = await fetch(`${apiUrl()}?records[]=${id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${res.status}`);
+        }
+        await fetchRecords();
+        setStatus('Deleted.', 'success');
+      } catch (e) {
+        setStatus('Delete failed: ' + e.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
