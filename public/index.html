@@ -3,261 +3,611 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Airtable Frontend</title>
+  <title>Records Manager</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f5f5f5;
-      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      color: #1a1a1a;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      border-radius: 12px;
       padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
     }
 
     h1 {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.95rem;
     }
 
     .toolbar {
       display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    .toolbar button {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 6px;
-      font-size: 0.875rem;
+    button {
+      padding: 0.75rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
-    .toolbar button:hover { background: #f0f0f0; }
-    .toolbar button.primary { background: #2d7ff9; color: #fff; border-color: #2d7ff9; }
-    .toolbar button.primary:hover { background: #1a6fe0; }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
 
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-toggle {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+      font-weight: 600;
+    }
+
+    .btn-toggle.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .view-toggle {
+      display: flex;
+      gap: 0.5rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 0.25rem;
+      background: white;
+    }
+
+    .view-toggle button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: transparent;
+      color: #666;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .view-toggle button.active {
+      background: #667eea;
+      color: white;
+      border-radius: 6px;
+    }
+
+    .content {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    }
+
+    /* Table View */
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #ddd;
     }
 
     th {
       text-align: left;
-      padding: 0.625rem 1rem;
-      background: #f8f8f8;
-      border-bottom: 2px solid #ddd;
-      font-size: 0.8rem;
+      padding: 1rem;
+      background: #f8f9fa;
       font-weight: 600;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+      font-size: 0.9rem;
     }
 
     td {
-      padding: 0.5rem 1rem;
-      border-bottom: 1px solid #eee;
-      font-size: 0.875rem;
+      padding: 1rem;
+      border-bottom: 1px solid #e0e0e0;
     }
 
-    tr:hover td { background: #f9fbff; }
+    tr:hover td {
+      background: #f8f9fa;
+    }
 
-    td input {
+    .cell-input {
       width: 100%;
-      border: 1px solid transparent;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.875rem;
-      font-family: inherit;
-      background: transparent;
-    }
-
-    td input:focus {
-      outline: none;
-      border-color: #2d7ff9;
-      background: #fff;
-    }
-
-    .actions button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      color: #999;
-    }
-
-    .actions button:hover { background: #fee; color: #e33; }
-
-    .status {
-      margin-top: 1rem;
-      padding: 0.75rem 1rem;
+      padding: 0.5rem;
+      border: 1px solid #ddd;
       border-radius: 6px;
-      font-size: 0.875rem;
-      display: none;
+      font-family: inherit;
+      font-size: 0.95rem;
     }
 
-    .status.error { display: block; background: #fef2f2; color: #c33; border: 1px solid #fcc; }
-    .status.success { display: block; background: #f0fdf4; color: #2a7; border: 1px solid #bef5cb; }
-    .status.info { display: block; background: #eff6ff; color: #369; border: 1px solid #bdd9fc; }
+    .cell-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
 
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+
+    .btn-edit {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-delete {
+      background: #ff6b6b;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #ff5252;
+    }
+
+    /* Card View */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 1.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      border-color: #667eea;
+    }
+
+    .card-header {
+      margin-bottom: 1rem;
+    }
+
+    .card-field {
+      margin-bottom: 0.75rem;
+    }
+
+    .card-label {
+      font-size: 0.8rem;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-value {
+      font-size: 1rem;
+      color: #333;
+      margin-top: 0.25rem;
+    }
+
+    .card-input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+
+    .card-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 1rem;
+    }
+
+    .card-actions button {
+      flex: 1;
+    }
+
+    /* Status Messages */
+    .status {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      max-width: 400px;
+      animation: slideIn 0.3s ease;
+      z-index: 1000;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Empty State */
     .empty-state {
       text-align: center;
-      padding: 3rem;
+      padding: 3rem 2rem;
       color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state h2 {
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #666;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+
+      header {
+        padding: 1.5rem;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .toolbar {
+        flex-direction: column;
+      }
+
+      .toolbar button,
+      .view-toggle {
+        width: 100%;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        font-size: 0.85rem;
+      }
+
+      th, td {
+        padding: 0.75rem 0.5rem;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Airtable Frontend</h1>
+  <div class="container">
+    <header>
+      <h1>Records Manager</h1>
+      <p class="subtitle">Manage your Airtable records</p>
 
-  <div class="toolbar">
-    <button class="primary" onclick="addRow()">+ Add Record</button>
-    <button onclick="fetchRecords()">Refresh</button>
+      <div class="toolbar">
+        <button class="btn-primary" onclick="addRecord()">+ New Record</button>
+
+        <div class="view-toggle">
+          <button class="active" onclick="setView('table')">Table</button>
+          <button onclick="setView('cards')">Cards</button>
+        </div>
+
+        <button class="btn-secondary" onclick="refreshRecords()">Refresh</button>
+      </div>
+    </header>
+
+    <div class="content" id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        Loading records...
+      </div>
+    </div>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th style="width:40px">#</th>
-        <th>Name</th>
-        <th>Age</th>
-        <th>Date of Birth</th>
-        <th style="width:70px">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody">
-      <tr><td colspan="5" class="empty-state">Loading...</td></tr>
-    </tbody>
-  </table>
-
-  <div id="status" class="status"></div>
+  <div id="status"></div>
 
   <script>
-    let records = [];
     const API_BASE = 'https://airtabletesting.onrender.com';
+    let records = [];
+    let currentView = 'table';
 
-    function getApiBase() {
-      return API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
-    }
-
-    function setStatus(msg, type) {
-      const el = document.getElementById('status');
-      el.textContent = msg;
-      el.className = 'status ' + type;
-      if (type === 'success') setTimeout(() => el.className = 'status', 3000);
-    }
-
+    // === Core API Functions ===
     async function fetchRecords() {
       try {
-        const apiBase = getApiBase();
-        const res = await fetch(apiBase + '/api/records');
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || `HTTP ${res.status}`);
-        }
+        const res = await fetch(API_BASE + '/api/records');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         records = data.records || [];
         render();
-      } catch (e) {
-        setStatus('Fetch failed: ' + e.message, 'error');
+      } catch (err) {
+        showStatus(err.message, 'error');
       }
     }
 
-    function render() {
-      const tbody = document.getElementById('tableBody');
-      if (records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No records yet. Click "+ Add Record" to create one.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = records.map((r, i) => `
-        <tr data-id="${r.id}">
-          <td style="color:#999">${i + 1}</td>
-          <td><input type="text" value="${esc(r.fields.Name || '')}" data-field="Name" onchange="updateField(this)" /></td>
-          <td><input type="number" value="${esc(String(r.fields.Age ?? ''))}" data-field="Age" onchange="updateField(this)" /></td>
-          <td><input type="date" value="${esc(r.fields['Date of Birth'] || '')}" data-field="Date of Birth" onchange="updateField(this)" /></td>
-          <td class="actions"><button onclick="deleteRow('${r.id}')">Delete</button></td>
-        </tr>
-      `).join('');
-    }
-
-    function esc(s) {
-      return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    async function addRow() {
+    async function createRecord() {
       try {
-        setStatus('Adding record...', 'info');
-        const apiBase = getApiBase();
-        const res = await fetch(apiBase + '/api/records', {
+        showStatus('Creating record...', 'info');
+        const res = await fetch(API_BASE + '/api/records', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fields: {} }),
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || `HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         await fetchRecords();
-        setStatus('Record added.', 'success');
-      } catch (e) {
-        setStatus('Add failed: ' + e.message, 'error');
+        showStatus('Record created', 'success');
+      } catch (err) {
+        showStatus('Failed: ' + err.message, 'error');
       }
     }
 
-    async function updateField(input) {
-      const id = input.closest('tr').dataset.id;
-      const field = input.dataset.field;
-      let value = input.value;
-
-      if (field === 'Age') {
-        value = value === '' ? null : Number(value);
-      }
-
+    async function updateRecord(id, field, value) {
       try {
-        setStatus('Saving...', 'info');
-        const apiBase = getApiBase();
-        const res = await fetch(apiBase + `/api/records/${id}`, {
+        const res = await fetch(API_BASE + `/api/records/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { [field]: value } }),
+          body: JSON.stringify({ fields: { [field]: value || null } }),
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || `HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         await fetchRecords();
-        setStatus('Saved.', 'success');
-      } catch (e) {
-        setStatus('Save failed: ' + e.message, 'error');
+        showStatus('Saved', 'success');
+      } catch (err) {
+        showStatus('Failed: ' + err.message, 'error');
         await fetchRecords();
       }
     }
 
-    async function deleteRow(id) {
+    async function deleteRecord(id) {
       if (!confirm('Delete this record?')) return;
       try {
-        setStatus('Deleting...', 'info');
-        const apiBase = getApiBase();
-        const res = await fetch(apiBase + `/api/records/${id}`, { method: 'DELETE' });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || `HTTP ${res.status}`);
-        }
+        showStatus('Deleting...', 'info');
+        const res = await fetch(API_BASE + `/api/records/${id}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         await fetchRecords();
-        setStatus('Deleted.', 'success');
-      } catch (e) {
-        setStatus('Delete failed: ' + e.message, 'error');
+        showStatus('Deleted', 'success');
+      } catch (err) {
+        showStatus('Failed: ' + err.message, 'error');
       }
     }
 
-    // Load records on page load
+    // === UI Functions ===
+    function setView(view) {
+      currentView = view;
+      document.querySelectorAll('.view-toggle button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      render();
+    }
+
+    function addRecord() {
+      createRecord();
+    }
+
+    function refreshRecords() {
+      fetchRecords();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.innerHTML = `<div class="status ${type}">${escapeHtml(msg)}</div>`;
+      if (type === 'success') setTimeout(() => el.innerHTML = '', 3000);
+    }
+
+    function render() {
+      const content = document.getElementById('content');
+
+      if (records.length === 0) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h2>No records yet</h2>
+            <p>Click "New Record" to create your first record</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentView === 'table') {
+        renderTable();
+      } else {
+        renderCards();
+      }
+    }
+
+    function renderTable() {
+      const content = document.getElementById('content');
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px">#</th>
+              <th>Name</th>
+              <th>Age</th>
+              <th>Date of Birth</th>
+              <th style="width: 120px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map((r, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>
+                  <input type="text" class="cell-input"
+                    value="${escapeHtml(r.fields.Name || '')}"
+                    onchange="updateRecord('${r.id}', 'Name', this.value)"
+                  />
+                </td>
+                <td>
+                  <input type="number" class="cell-input"
+                    value="${r.fields.Age ?? ''}"
+                    onchange="updateRecord('${r.id}', 'Age', this.value ? parseInt(this.value) : null)"
+                  />
+                </td>
+                <td>
+                  <input type="date" class="cell-input"
+                    value="${r.fields['Date of Birth'] || ''}"
+                    onchange="updateRecord('${r.id}', 'Date of Birth', this.value)"
+                  />
+                </td>
+                <td>
+                  <div class="actions">
+                    <button class="btn-sm btn-delete" onclick="deleteRecord('${r.id}')">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      content.innerHTML = html;
+    }
+
+    function renderCards() {
+      const content = document.getElementById('content');
+      const html = `
+        <div class="cards-grid">
+          ${records.map(r => `
+            <div class="card">
+              <div class="card-header">
+                <div class="card-field">
+                  <div class="card-label">Name</div>
+                  <input type="text" class="card-input"
+                    value="${escapeHtml(r.fields.Name || '')}"
+                    onchange="updateRecord('${r.id}', 'Name', this.value)"
+                    placeholder="Enter name"
+                  />
+                </div>
+              </div>
+
+              <div class="card-field">
+                <div class="card-label">Age</div>
+                <input type="number" class="card-input"
+                  value="${r.fields.Age ?? ''}"
+                  onchange="updateRecord('${r.id}', 'Age', this.value ? parseInt(this.value) : null)"
+                  placeholder="Enter age"
+                />
+              </div>
+
+              <div class="card-field">
+                <div class="card-label">Date of Birth</div>
+                <input type="date" class="card-input"
+                  value="${r.fields['Date of Birth'] || ''}"
+                  onchange="updateRecord('${r.id}', 'Date of Birth', this.value)"
+                />
+              </div>
+
+              <div class="card-actions">
+                <button class="btn-sm btn-delete" onclick="deleteRecord('${r.id}')">Delete</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      content.innerHTML = html;
+    }
+
+    // Load on startup
     fetchRecords();
   </script>
 </body>
