@@ -50,9 +50,12 @@ async function handle(req, res) {
   }
 
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
-  if (url.pathname !== '/api/records' && url.pathname !== '/api/records/') {
+  const pathname = url.pathname.replace(/\/$/, '') || '/';
+  const isRecordsPath = pathname === '/api/records' || /^\/api\/records\/[^/]+$/.test(pathname);
+
+  if (!isRecordsPath) {
     res.writeHead(404, { ...headers, 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found. Use GET/POST /api/records, PATCH/DELETE /api/records' }));
+    res.end(JSON.stringify({ error: 'Not found. Use /api/records or /api/records/{id}' }));
     return;
   }
 
@@ -70,9 +73,18 @@ async function handle(req, res) {
 
   let airtableUrl = AIRTABLE_BASE;
   let method = req.method;
-  if (method === 'DELETE') {
+
+  // Extract record ID from path (e.g., /api/records/rec123456)
+  const pathMatch = pathname.match(/^\/api\/records\/([^/]+)$/);
+  if (pathMatch) {
+    const recordId = pathMatch[1];
+    airtableUrl = `${AIRTABLE_BASE}/${recordId}`;
+  } else if (method === 'DELETE') {
+    // Support query param format: ?records[]=id1&records[]=id2
     const ids = url.searchParams.getAll('records[]');
-    airtableUrl = ids.length ? `${AIRTABLE_BASE}?${ids.map(id => `records[]=${id}`).join('&')}` : AIRTABLE_BASE;
+    if (ids.length) {
+      airtableUrl = `${AIRTABLE_BASE}?${ids.map(id => `records[]=${id}`).join('&')}`;
+    }
   }
 
   const opts = {
