@@ -28,8 +28,8 @@ If the token that was in `index.html` was ever committed or deployed:
 
 1. In your GitHub repo: **Settings → Pages**.
 2. **Source:** Deploy from a branch.
-3. **Branch:** e.g. `main`, folder **/ (root)**.
-4. Save. Your site will be at `https://<username>.github.io/<repo-name>/` (or `https://<username>.github.io/<repo-name>` if it’s the project site).
+3. **Branch:** `main`, folder **/public**.
+4. Save. Your site will be at `https://<username>.github.io/<repo-name>/` (where `<username>` is your GitHub username and `<repo-name>` is `airtableTesting`).
 
 ## 4. Use the app
 
@@ -44,4 +44,4 @@ To avoid users entering a different backend URL, you can hardcode the Render URL
 ## Local development
 
 - **Backend:** `AIRTABLE_TOKEN=xxx AIRTABLE_BASE_ID=yyy AIRTABLE_TABLE_NAME=zzz node server.js` (runs on port 3000).
-- **Frontend:** Open `index.html` (e.g. with Live Server) and set Backend API URL to `http://localhost:3000`.
+- **Frontend:** Open `public/index.html` (e.g. with VS Code Live Server extension) and the Backend API URL input will default to `http://localhost:3000`.
