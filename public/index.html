@@ -566,6 +566,7 @@
               <th>Name</th>
               <th>Age</th>
               <th>Date of Birth</th>
+              <th>Email</th>
               <th style="width: 100px">Actions</th>
             </tr>
           </thead>
@@ -590,6 +591,12 @@
                   <input type="date" data-field="Date of Birth"
                     value="${r.fields['Date of Birth'] || ''}"
                     onchange="handleFieldChange(this, '${r.id}', 'Date of Birth')"
+                  />
+                </td>
+                <td>
+                  <input type="email" data-field="Email"
+                    value="${escapeHtml(r.fields.Email || '')}"
+                    onchange="handleFieldChange(this, '${r.id}', 'Email')"
                   />
                 </td>
                 <td>
@@ -635,6 +642,15 @@
                 <input type="date" class="card-input" data-field="Date of Birth"
                   value="${r.fields['Date of Birth'] || ''}"
                   onchange="handleFieldChange(this, '${r.id}', 'Date of Birth')"
+                />
+              </div>
+
+              <div class="card-field">
+                <div class="card-label">Email</div>
+                <input type="email" class="card-input" data-field="Email"
+                  value="${escapeHtml(r.fields.Email || '')}"
+                  onchange="handleFieldChange(this, '${r.id}', 'Email')"
+                  placeholder="Enter email"
                 />
               </div>
 
