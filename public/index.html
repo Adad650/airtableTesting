@@ -19,46 +19,6 @@
       margin-bottom: 1.5rem;
     }
 
-    .config-bar {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      display: flex;
-      gap: 0.75rem;
-      align-items: end;
-      flex-wrap: wrap;
-    }
-
-    .config-bar label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #666;
-      display: block;
-      margin-bottom: 0.25rem;
-    }
-
-    .config-bar input {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      width: 280px;
-    }
-
-    .config-bar button {
-      padding: 0.5rem 1rem;
-      background: #2d7ff9;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      cursor: pointer;
-    }
-
-    .config-bar button:hover { background: #1a6fe0; }
-
     .toolbar {
       display: flex;
       gap: 0.5rem;
@@ -152,23 +112,16 @@
       padding: 3rem;
       color: #999;
     }
-
-    .loading { opacity: 0.5; pointer-events: none; }
   </style>
 </head>
 <body>
   <h1>Airtable Frontend</h1>
 
-  <div class="config-bar">
-    <div>
-      <label>Backend API URL</label>
-      <input type="url" id="apiBase" placeholder="https://your-app.onrender.com" />
-    </div>
-    <button onclick="connect()">Connect</button>
-  </div>
-  <p style="font-size:0.75rem;color:#666;margin-top:0.5rem;">Use your Render.com proxy URL. Token and base/table are configured on the server.</p>
-
   <div class="toolbar">
+    <div style="flex: 1;">
+      <label style="font-size: 0.8rem; color: #666; display: block; margin-bottom: 0.25rem;">Backend API URL</label>
+      <input id="apiBase" type="text" placeholder="https://your-app.onrender.com" value="http://localhost:3000" style="padding: 0.4rem 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.875rem; width: 100%; max-width: 400px;" />
+    </div>
     <button class="primary" onclick="addRow()">+ Add Record</button>
     <button onclick="fetchRecords()">Refresh</button>
   </div>
@@ -184,7 +137,7 @@
       </tr>
     </thead>
     <tbody id="tableBody">
-      <tr><td colspan="5" class="empty-state">Connect to Airtable to get started</td></tr>
+      <tr><td colspan="5" class="empty-state">Loading...</td></tr>
     </tbody>
   </table>
 
@@ -193,9 +146,10 @@
   <script>
     let records = [];
 
-    function getConfig() {
-      const base = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
-      return { apiBase: base };
+    function getApiBase() {
+      const input = document.getElementById('apiBase');
+      const url = (input.value || input.placeholder).trim();
+      return url.endsWith('/') ? url.slice(0, -1) : url;
     }
 
     function setStatus(msg, type) {
@@ -205,35 +159,20 @@
       if (type === 'success') setTimeout(() => el.className = 'status', 3000);
     }
 
-    function apiUrl() {
-      const { apiBase } = getConfig();
-      return apiBase ? `${apiBase}/api/records` : '';
-    }
-
-    async function connect() {
-      const { apiBase } = getConfig();
-      if (!apiBase) {
-        setStatus('Please enter your Backend API URL (e.g. https://your-app.onrender.com).', 'error');
-        return;
-      }
-      try {
-        setStatus('Connecting...', 'info');
-        await fetchRecords();
-        setStatus('Connected successfully!', 'success');
-      } catch (e) {
-        setStatus('Connection failed: ' + e.message, 'error');
-      }
-    }
-
     async function fetchRecords() {
-      const res = await fetch(apiUrl(), { headers: { 'Content-Type': 'application/json' } });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || `HTTP ${res.status}`);
+      try {
+        const apiBase = getApiBase();
+        const res = await fetch(apiBase + '/api/records');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        records = data.records || [];
+        render();
+      } catch (e) {
+        setStatus('Fetch failed: ' + e.message, 'error');
       }
-      const data = await res.json();
-      records = data.records || [];
-      render();
     }
 
     function render() {
@@ -260,10 +199,11 @@
     async function addRow() {
       try {
         setStatus('Adding record...', 'info');
-        const res = await fetch(apiUrl(), {
+        const apiBase = getApiBase();
+        const res = await fetch(apiBase + '/api/records', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ records: [{ fields: {} }] }),
+          body: JSON.stringify({ fields: {} }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -287,12 +227,11 @@
 
       try {
         setStatus('Saving...', 'info');
-        const res = await fetch(apiUrl(), {
+        const apiBase = getApiBase();
+        const res = await fetch(apiBase + `/api/records/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            records: [{ id: id, fields: { [field]: value } }]
-          }),
+          body: JSON.stringify({ fields: { [field]: value } }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -310,10 +249,8 @@
       if (!confirm('Delete this record?')) return;
       try {
         setStatus('Deleting...', 'info');
-        const res = await fetch(`${apiUrl()}?records[]=${id}`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-        });
+        const apiBase = getApiBase();
+        const res = await fetch(apiBase + `/api/records/${id}`, { method: 'DELETE' });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error?.message || `HTTP ${res.status}`);
@@ -324,6 +261,9 @@
         setStatus('Delete failed: ' + e.message, 'error');
       }
     }
+
+    // Load records on page load
+    fetchRecords();
   </script>
 </body>
 </html>
