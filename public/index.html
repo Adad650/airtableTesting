@@ -118,10 +118,6 @@
   <h1>Airtable Frontend</h1>
 
   <div class="toolbar">
-    <div style="flex: 1;">
-      <label style="font-size: 0.8rem; color: #666; display: block; margin-bottom: 0.25rem;">Backend API URL</label>
-      <input id="apiBase" type="text" placeholder="https://your-app.onrender.com" value="http://localhost:3000" style="padding: 0.4rem 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.875rem; width: 100%; max-width: 400px;" />
-    </div>
     <button class="primary" onclick="addRow()">+ Add Record</button>
     <button onclick="fetchRecords()">Refresh</button>
   </div>
@@ -145,11 +141,10 @@
 
   <script>
     let records = [];
+    const API_BASE = 'https://airtabletesting.onrender.com';
 
     function getApiBase() {
-      const input = document.getElementById('apiBase');
-      const url = (input.value || input.placeholder).trim();
-      return url.endsWith('/') ? url.slice(0, -1) : url;
+      return API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
     }
 
     function setStatus(msg, type) {
